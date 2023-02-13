@@ -7,7 +7,7 @@ namespace Rzd.ChatBot.Dialogues;
 public sealed class BotDialogues
 {
     public Dialogue[] Dialogues { get; }
-    public Dictionary<State, Dialogue> StateDialogues { get; private set; }
+    public Dictionary<State, Dialogue> StateDialogues { get; }
 
     private readonly IServiceProvider _provider;
     
@@ -19,30 +19,34 @@ public sealed class BotDialogues
                 "Rzd.ChatBot.Dialogues"
             )
             // Exclude this class and its nested types
-            .Where(_ => !_.AssemblyQualifiedName!.Contains("BotDialogues"))
+            .Where(type => !type.AssemblyQualifiedName!.Contains("BotDialogues"))
             // Instantiate each of Dialogue classes in ChatBot.Dialogues namespace
             .Select(dialogue => (Dialogue) Activator.CreateInstance(dialogue)!)
             .ToArray();
         
         StateDialogues = Dialogues
-            .ToDictionary(_ => _.State, _ => _);
+            .ToDictionary(key => key.State, val => val);
         
         InitializeDependencies();
     }
 
-    public Dialogue GetDialogueByState(State state)
+    public Dialogue DialogueByState(State state)
     {
-        // foreach (var dialogue in Dialogues)
-        // {
-        //     if (dialogue.State == state)
-        //     {
-        //         return dialogue;
-        //     }
-        // }
         var success = StateDialogues.TryGetValue(state, out var dialogue);
         if (!success)
             throw new KeyNotFoundException($"Dialogue with state {state} not found");
         return dialogue!;
+    }
+    public Dialogue NewDialogueByState(State state)
+    {
+        var success = StateDialogues.TryGetValue(state, out var dialogue);
+        if (!success)
+            throw new KeyNotFoundException($"Dialogue with state {state} not found");
+        var type = dialogue!.GetType();
+        var newDialogue = (Dialogue) Activator.CreateInstance(type)!;
+        newDialogue.DependencyInjection(_provider);
+        
+        return newDialogue;
     }
 
     private void InitializeDependencies()
@@ -57,8 +61,9 @@ public sealed class BotDialogues
     {
         return 
             assembly.GetTypes()
-                .Where(t => String.Equals(t.Namespace, @namespace, StringComparison.Ordinal))
-                .Where(t => ( t.Attributes & TypeAttributes.NestedPrivate ) != TypeAttributes.NestedPrivate)
+                .Where(type => string.Equals(type.Namespace, @namespace, StringComparison.Ordinal))
+                // Exclude nested types
+                .Where(type => !type.Attributes.HasFlag(TypeAttributes.NestedPrivate))
                 .ToArray();
     }
 }

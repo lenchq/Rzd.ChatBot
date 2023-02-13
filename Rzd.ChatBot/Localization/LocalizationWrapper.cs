@@ -1,4 +1,6 @@
-﻿namespace Rzd.ChatBot.Localization;
+﻿using SmartFormat;
+
+namespace Rzd.ChatBot.Localization;
 
 public class LocalizationWrapper
 {
@@ -12,11 +14,13 @@ public class LocalizationWrapper
     {
         _prefix = prefixName;
         _localization = localization;
-        _flattenOptions = GetFlattenOptions();
-        _flattenColors = GetFlattenColors();
+        _flattenOptions = FlattenOptions();
+        _flattenColors = FlattenColors();
     }
 
-    private string[]? GetFlattenColors()
+    public string? GetInnerPic(string key) => _localization.GetPicPath(key);
+
+    private string[]? FlattenColors()
     {
         var values = new List<string>();
         var keys = _localization.GetChildren($"{_prefix}:vk_colors");
@@ -29,18 +33,30 @@ public class LocalizationWrapper
         return values.ToArray();
     }
 
-    public string? this[int index] => GetOption(index);
+    public string? this[int index] => Option(index);
+    
+    public string RawFormattedText(string key = "caption", params object?[] args)
+    {
+        var text = _localization[key];
+        return Smart.Format(text, args);
+    }
 
-    public string? GetText(string key = "caption", bool throwIfNull = true)
+    public string FormattedText(string key = "caption", params object?[] args)
+    {
+        var text = _localization[$"{_prefix}:{key}"];
+        return Smart.Format(text, args);
+    }
+
+    public string Text(string key = "caption", bool throwIfNull = true)
     {
         var text = _localization[$"{_prefix}:{key}"];
         if (throwIfNull && text is null)
             throw new KeyNotFoundException($"No locale string with path \"{_prefix}:{key}\" found");
-        return text;
+        return text!;
     }
 
     //TODO: rework with GetChildren
-    private string[] GetFlattenOptions()
+    private string[] FlattenOptions()
     {
         var values = new List<string>();
         // because first element is root key
@@ -57,12 +73,12 @@ public class LocalizationWrapper
         return values.ToArray();
     }
 
-    public string? GetRaw(string key)
+    public string? Raw(string key)
     {
         return _localization[key];
     }
 
-    public IEnumerable<IEnumerable<string>> GetOptions()
+    public string[][] Options()
     {
         var values = new List<List<string>>();
         var keys = _localization.GetChildren($"{_prefix}:options");
@@ -78,8 +94,44 @@ public class LocalizationWrapper
         
         return values.Select(x => x.ToArray()).ToArray();
     }
+    
+    public string[][] Options(int[] indexes)
+    {
+        var values = new List<List<string>>();
+        var keys = _localization.GetChildren($"{_prefix}:options");
+        
+        for (var i = 0; i < keys.Length; i++)
+        {
+            values.Add(new List<string>());
+        }
+        
+        foreach (var i in keys.Select(int.Parse))
+        {
+            values[i].AddRange(_localization.GetValues($"{_prefix}:options:{i}"));
+        }
 
-    public string[][] GetColors()
+        // from values select only these that have indexes in
+        // "indexes" argument
+        var indexesValues = values
+            .SelectMany(x => x)
+            .Select((x, i) => (i, x))
+            .Where(x => indexes.Contains(x.i))
+            .Select(x => x.x);
+
+
+        return values
+            .Select(x => x.Intersect(indexesValues).ToArray())
+            .ToArray();
+
+        // return values
+        //     // Select only values from indexesValues
+        //     .Where(x => x.Intersect(indexesValues).Any())
+        //     // convert to string[][]
+        //     .Select(_ => _.ToArray())
+        //     .ToArray();
+    }
+
+    public string[][] Colors()
     {
         var values = new List<List<string>>();
         var keys = _localization.GetChildren($"{_prefix}:vk_colors");
@@ -97,10 +149,12 @@ public class LocalizationWrapper
         return values.Select(x => x.ToArray()).ToArray();
     }
 
-    public string? GetOption(int index)
+    public string Option(int index)
     {
+        if (_flattenOptions.Length <= index)
+            throw new Exception($" \"{_prefix}\" locale have less options than requested ({index + 1})");
         return _flattenOptions[index];
         //return _localization[$"{_prefix}:options:{index}"];
     }
-    
+
 }

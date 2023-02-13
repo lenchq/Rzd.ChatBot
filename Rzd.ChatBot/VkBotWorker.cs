@@ -20,9 +20,10 @@ public sealed class VkBotWorker : BotWorker
     private const string RedisPrefix = "vk:";
     
     private ulong _lastTs;
-    private VkApi _client;
+    private readonly VkApi _client;
     private readonly Random _random;
-    private const string TsFilename = "vk_ts";
+    // Src
+    private const string TsFilename = "../../../Resources/vk_ts";
 
     public VkBotWorker(
         ILogger<VkBotWorker> logger,
@@ -56,15 +57,20 @@ public sealed class VkBotWorker : BotWorker
                     Ts = _lastTs,
                 });
             }
-            catch (VkApiMethodInvokeException)
+            catch (VkApiMethodInvokeException exception)
             {
-                Logger.LogWarning("Wrong Ts value, resetting Ts");
+                Logger.LogWarning("Wrong Ts value, resetting Ts ({@Message})", exception);
                 _lastTs = FetchTs();
                 poll = _client.Messages.GetLongPollHistory(new()
                 {
                     Ts = _lastTs,
                 });
                 SaveLastTs();
+            }
+            catch(Exception ex)
+            {
+                Logger.LogError(ex, "Something went wrong when executing VkBotWorker");
+                continue;
             }
 
 
@@ -92,7 +98,7 @@ public sealed class VkBotWorker : BotWorker
 
     
 
-    protected override async Task SendTextMessage(long chatId, string text, OptionsProvider? provider)
+    protected override async Task SendTextMessage(long chatId, string text, OptionsProvider? provider = null, Photo[]? photos = null)
     {
         MessageKeyboard? keyboard = null; 
         if (provider?.Options is not null)
@@ -128,6 +134,11 @@ public sealed class VkBotWorker : BotWorker
             Keyboard = keyboard,
         });
         //_logger.LogDebug("SENT MESSAGE TO {0}", chatId);
+    }
+
+    protected override Task<Stream> GetFile(string fileId)
+    {
+        throw new NotImplementedException();
     }
 
     public override void Dispose()

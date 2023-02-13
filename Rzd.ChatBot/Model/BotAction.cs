@@ -2,4 +2,4 @@
 
 namespace Rzd.ChatBot.Model;
 
-public delegate State BotAction(Context ctx);
+public delegate ValueTask<State> BotAction(Context ctx);

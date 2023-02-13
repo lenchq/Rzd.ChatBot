@@ -5,5 +5,5 @@
 public class OptionsProvider
 {
     public IEnumerable<IEnumerable<string>>? Options { get; set; }
-    public string[][]? Colors { get; set; }
+    public string[][] Colors { get; set; } = null!;
 }

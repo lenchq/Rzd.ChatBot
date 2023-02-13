@@ -5,18 +5,23 @@ namespace Rzd.ChatBot.Localization;
 public class AppLocalization
 {
     private readonly IConfiguration _localization;
+    private readonly IConfiguration _pics;
     private const string LocalizationPath = "l10n";
+    private const string PicsPath = "pics";
 
     public AppLocalization(IConfiguration configuration)
     {
         _localization = configuration.GetSection(LocalizationPath);
+        _pics = configuration.GetSection(PicsPath);
     }
 
-    public string? this[string key]
+    public string? this[string key] => GetItem(key);
+
+
+    public string? GetPicPath(string key)
     {
-        get => GetItem(key);
+        return _pics[key]; // ?? throw new NullReferenceException($"Picture reference with name {key} not found");
     }
-
     public string? GetItem(string key)
     {
         return _localization[key];

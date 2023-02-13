@@ -10,6 +10,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "common", "common", "{2F00B4
 		.dockerignore = .dockerignore
 		docker-compose.yml = docker-compose.yml
 		README.md = README.md
+		.gitignore = .gitignore
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{EECBD798-6667-4C25-9188-4C83A5C1DF51}"

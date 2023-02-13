@@ -9,10 +9,13 @@ public record UserForm
     private int? _age;
     private string[] _photos = Array.Empty<string>();
     private string? _about;
-    private int? _coupe;
+    private int? _seat;
     private string? _trainNumber;
     private Gender? _gender;
     private bool? _showCoupe;
+    private bool? _showContact;
+    private bool _disabled = true;
+    private bool _fulfilled = false;
 
     public long Id { get; init; }
 
@@ -27,39 +30,68 @@ public record UserForm
         get => _age;
         set => SetField(value, out _age);
     }
-    public string[] Photos {
+    public string[] Photos 
+    {
         get => _photos;
         set => SetField(value, out _photos);
     }
-    public string? About {
+    public string? About 
+    {
         get => _about;
         set => SetField(value, out _about);
     }
-    public int? Coupe {
-        get => _coupe;
-        set => SetField(value, out _coupe);
+    public int? Seat 
+    {
+        get => _seat;
+        set => SetField(value, out _seat);
     }
-    public string? TrainNumber {
+    public string? TrainNumber 
+    {
         get => _trainNumber;
         set => SetField(value, out _trainNumber);
     }
-    public Gender? Gender {
+    public Gender? Gender 
+    {
         get => _gender;
         set => SetField(value, out _gender);
     }
-    public bool? ShowCoupe {
+    public bool? ShowCoupe 
+    {
         get => _showCoupe;
         set => SetField(value, out _showCoupe);
     }
+
+    public bool? ShowContact
+    {
+        get => _showContact;
+        set => SetField(value, out _showContact);
+    }
+
+    public bool Disabled
+    {
+        get => _disabled;
+        set => SetField(value, out _disabled);
+    }
+
+    public bool Fulfilled
+    {
+        get => _fulfilled;
+        set => SetField(value, out _fulfilled);
+    }
     
     
-    public DateTime CreatedAt { get; init; }
-    public DateTime UpdatedAt { get; init; }
-    public DateTime LastActive { get; init; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public DateTime LastActive { get; set; }
     
     
     [NotMapped]
     public bool Modified { get; private set; }
+
+    public void UpdateActive()
+    {
+        LastActive = DateTime.UtcNow;
+    }
     
     private void SetField<T>(T value, out T field)
     {

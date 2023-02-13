@@ -21,20 +21,29 @@ internal sealed class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
-        services.Configure<TelegramBotOptions>(
-            _configuration.GetSection("Bot:Telegram")
-        );
-        services.Configure<VkBotOptions>(
-            _configuration.GetSection("Bot:Vk")
-        );
-        services.Configure<RedisOptions>(
-            _configuration.GetSection("Data:Redis")
-        );
-        services.Configure<DbOptions>(
-            _configuration.GetSection("Data:Database")
-        );
-        //var localization = new AppLocalization(_configuration);
-
+        #region configure options
+        void ConfigureOptions()
+        {
+            services.Configure<TelegramBotOptions>(
+                _configuration.GetSection("Bot:Telegram")
+            );
+            services.Configure<VkBotOptions>(
+                _configuration.GetSection("Bot:Vk")
+            );
+            services.Configure<RedisOptions>(
+                _configuration.GetSection("Data:Redis")
+            );
+            services.Configure<DbOptions>(
+                _configuration.GetSection("Data:Database")
+            );
+            services.Configure<QrOptions>(
+                _configuration.GetSection("Data:Qr")
+            );
+        }
+        #endregion
+        
+        ConfigureOptions();
+        
         services.AddSingleton<AppDbContext>();
         
         services.AddTransient<AppLocalization>();
@@ -46,7 +55,7 @@ internal sealed class Startup
         services.AddSingleton<BotDialogues>(); 
         
         services.AddHostedService<TelegramBotWorker>();
-        services.AddHostedService<VkBotWorker>();
+        //services.AddHostedService<VkBotWorker>();
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

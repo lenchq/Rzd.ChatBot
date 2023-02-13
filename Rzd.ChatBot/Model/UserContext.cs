@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using Newtonsoft.Json;
 using Rzd.ChatBot.Types.Enums;
 
 namespace Rzd.ChatBot.Model;
@@ -32,7 +33,15 @@ public record UserContext
         set => SetField(value, out _state);
     }
 
+    private long? _currentForm;
+    public long? CurrentForm
+    {
+        get => _currentForm;
+        set => SetField(value, out _currentForm);
+    }
+
     [JsonIgnore]
+    [NotMapped]
     public bool Modified { get; set; } = false;
     
     private void SetField<T>(T value, out T field)

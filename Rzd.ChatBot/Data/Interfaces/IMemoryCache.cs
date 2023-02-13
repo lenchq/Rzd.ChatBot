@@ -4,7 +4,9 @@ public interface IMemoryCache<TValue> : IDisposable
 {
     TValue this[string key] { get; set; }
     TValue Get(string key);
-    void Set(string key, TValue value);
+    Task<TValue> GetAsync(string key);
+    void Set(string key, TValue value, TimeSpan? expiry = null);
+    Task SetAsync(string key, TValue value, TimeSpan? expiry = null);
     void Delete(string key);
-    void Set(string key, TValue value, TimeSpan expiry);
+    Task DeleteAsync(string key);
 }

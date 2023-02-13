@@ -21,7 +21,7 @@ public class RedisCache<TData> : IMemoryCache<TData>
         {
             connection = ConnectionMultiplexer.Connect(new ConfigurationOptions
             {
-                EndPoints = new() { _options.Url },
+                EndPoints = new EndPointCollection { _options.Host, _options.Port.ToString() },
                 //User = _options.User,
                 //Password = _options.Password,
                 ReconnectRetryPolicy = new LinearRetry(60_000),
@@ -52,8 +52,31 @@ public class RedisCache<TData> : IMemoryCache<TData>
 
     public void Set(string key, TData value)
     {
+        throw new NotImplementedException();
+    }
+
+    public async Task<TData> GetAsync(string key)
+    {
+        var json = await _db.StringGetAsync(key);
+        if (json.IsNullOrEmpty)
+            throw new ArgumentException("No such key exists", nameof(key));
+        var obj = JsonParse<TData>(json!);
+        return obj;
+    }
+
+    public void Set(string key, TData value, TimeSpan? expiry = null)
+    {
         var stringified = JsonStringify(value);
-        var result = _db.StringSet(key, stringified);
+        var result = _db.StringSet(key, stringified, expiry);
+        if (!result)
+        {
+            throw new Exception($"Something went wrong when setting {key} to {stringified}");
+        }
+    }
+    public async Task SetAsync(string key, TData value, TimeSpan? expiry = null)
+    {
+        var stringified = JsonStringify(value);
+        var result = await _db.StringSetAsync(key, stringified, expiry);
         if (!result)
         {
             throw new Exception($"Something went wrong when setting {key} to {stringified}");
@@ -64,16 +87,11 @@ public class RedisCache<TData> : IMemoryCache<TData>
     {
         _db.KeyDelete(key);
     }
-
-    public void Set(string key, TData value, TimeSpan expiry)
+    public async Task DeleteAsync(string key)
     {
-        var stringified = JsonStringify(value);
-        var result = _db.StringSet(key, stringified, expiry);
-        if (!result)
-        {
-            throw new Exception($"Something went wrong when setting {key} to {stringified}");
-        }
+        await _db.KeyDeleteAsync(key);
     }
+
 
     private static string JsonStringify(TData value)
         => JsonConvert.SerializeObject(value);

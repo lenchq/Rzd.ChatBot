@@ -2,7 +2,8 @@
 
 public record RedisOptions
 {
-    public string Url { get; set; } = string.Empty;
+    public string Host { get; set; } = string.Empty;
+    public int Port { get; set; } = default;
     public string User { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
 }

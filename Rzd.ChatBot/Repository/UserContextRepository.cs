@@ -46,6 +46,12 @@ public class UserContextRepository : IUserContextRepository
         ThrowIfNotInitialized();
         return _db.Get(BuildKey(chatId));
     }
+    public async Task<UserContext> GetContextAsync(long chatId)
+    {
+        ThrowIfNotInitialized();
+        return await _db.GetAsync(BuildKey(chatId));
+    }
+
 
     public void DeleteContext(long id)
     {
@@ -74,9 +80,14 @@ public class UserContextRepository : IUserContextRepository
     public void SetContext(UserContext ctx)
     {
         ThrowIfNotInitialized();
-        var id = ctx.Id;
-        
+
         _db.Set(BuildKey(ctx.Id), ctx);
+    }
+    public async Task SetContextAsync(UserContext ctx)
+    {
+        ThrowIfNotInitialized();
+
+        await _db.SetAsync(BuildKey(ctx.Id), ctx);
     }
 
     public void SetState(long chatId, State state)

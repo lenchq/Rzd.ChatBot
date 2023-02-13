@@ -16,16 +16,16 @@ public class TelegramContextFactory
     
     public Context CreateContext(TelegramMessage msg, UserContext ctx, UserForm userForm)
     {
-        var files = new List<string>();
-        if (msg.Photo is { } photos)
-        {
-            // iterate every third element of collection
-            // because telegram photos is [low quality, medium quality, high quality] * photo count
-            for (var i = 2; i < photos.Length; i += 3)
-            {
-                files.Add(photos[i].FileId);
-            }
-        }
+        // var files = new List<string>();
+        // if (msg.Photo is { } photos)
+        // {
+        //     // iterate every third element of collection
+        //     // because telegram photos is [low quality, medium quality, high quality]
+        //     for (var i = 2; i < photos.Length; i += 3)
+        //     {
+        //         files.Add(photos[i].FileId);
+        //     }
+        // }
         
 
         return new Context

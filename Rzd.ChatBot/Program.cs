@@ -1,4 +1,5 @@
 using Rzd.ChatBot.Extensions;
+using Serilog;
 
 namespace Rzd.ChatBot;
 
@@ -11,24 +12,30 @@ static class Program
         => Host.CreateDefaultBuilder(args)
             .ConfigureAppConfiguration((hostingContext, configurationBuilder) =>
             {
-                var localizationFilePath = "localization.yml";
-                var appsettingsFilePath = $"appsettings.{
-                    hostingContext.HostingEnvironment
-                        .EnvironmentName.Capitalize()
-                }.json";
+                var isDev = hostingContext.HostingEnvironment.IsDevelopment();
+                
+                var sep = Path.DirectorySeparatorChar;
 
-                if (hostingContext.HostingEnvironment.IsDevelopment())
+                var localizationFilePath = $"Resources{sep}localization.yml";
+                var picsFilePath = $"Resources{sep}pics.yml";
+                var appsettingsFilePath = $"appsettings.{ hostingContext.HostingEnvironment.EnvironmentName.Capitalize() }.json";
+
+                if (isDev)
                 {
-                    //resolve config files in src directory instead of /bin/debug/...
+                    // resolve config files in src directory instead of /bin/debug/...
                     // to support hot reload
                     localizationFilePath = Path.GetFullPath("..\\..\\..\\" + localizationFilePath);
+                    picsFilePath = Path.GetFullPath("..\\..\\..\\" + picsFilePath);
                     appsettingsFilePath = Path.GetFullPath("..\\..\\..\\" + appsettingsFilePath);
                 }
                 
-                configurationBuilder.AddYamlFile(localizationFilePath, false, true);
+                // Hot reload only makes sense in development environment
+                configurationBuilder.AddYamlFile(localizationFilePath, false, isDev);
+                configurationBuilder.AddYamlFile(picsFilePath, false, isDev);
+                
                 configurationBuilder
                     .AddJsonFile(appsettingsFilePath,
-                        false, true);
+                        false, isDev);
             })
             .ConfigureWebHostDefaults(
                 webBuilder =>

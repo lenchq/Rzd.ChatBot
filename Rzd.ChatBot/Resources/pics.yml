@@ -1,0 +1,6 @@
+pics:
+  start: 'Resources/Images/starting.png'
+  editAbout: 'Resources/Images/about.png'
+  editPhoto: 'Resources/Images/photo.png'
+  formStarting: 'Resources/Images/form.png'
+  
