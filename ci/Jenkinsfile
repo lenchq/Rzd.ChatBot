@@ -1,0 +1,74 @@
+pipeline {
+    agent any
+
+    environment {
+        DOTNET_CLI_HOME="/tmp/DOTNET_CLI_HOME"
+        imagename = "lenchq/rzd.chatbot:latest"
+        dockerImage = ''
+    }
+
+    stages {
+        stage('Build .NET 7 app') {
+            steps {
+                script {
+                    withEnv([
+                        'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1',
+                        'HOME=/tmp',
+                        'XDG_CONFIG_HOME=/tmp'                      
+                        ]) {
+                        dir('Rzd.ChatBot') {
+                            withDotNet(sdk: '.NET 7') {
+                                
+                                echo "Restoring project..."
+                                dotnetRestore force: true, forceEvaluate: true, lockedMode: true, noCache: true, project: 'Rzd.ChatBot.csproj', sdk: '.NET 7', verbosity: 'm'
+                                echo "Done."
+                                echo "Building project..."
+                                dotnetBuild configuration: 'Release', noRestore: true, project: 'Rzd.ChatBot.csproj', sdk: '.NET 7'
+                                echo "Done." 
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage('Build image') {
+            steps {
+                script {
+                    echo "Creating Docker image..."
+                    dockerImage = docker.build imagename
+                    echo "Done."
+                }
+            }
+        }
+        stage('Deploy image') {
+            steps {
+                script {
+                    echo 'Deploying Docker image...'
+                    dockerImage.push 'latest'
+                    echo 'Done.'
+                }
+            }
+        }
+        // stage('SonarQube Scan') {
+        //     steps {
+        //         script {
+        //             sh "Scanning project..."
+        //             withSonarQubeEnv {
+        //                 sh "${sqScannerMsBuildHome}\\SonarQube.Scanner.MSBuild.exe begin /k:myKey"
+        //                 dotnetBuild force: true, noIncremental: true, project: 'Rzd.ChatBot.csproj', sdk: '.NET 7'
+        //                 sh "${sqScannerMsBuildHome}\\SonarQube.Scanner.MSBuild.exe end"
+        //             }
+        //             sh "Done."
+        //         }
+        //     }
+        // }
+        stage('Docker deploy') {
+            steps {
+                script {
+                    sh "Deploying project via docker..."
+                    sh ""
+                }
+            }
+        }
+    }
+}

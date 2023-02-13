@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rzd.ChatBot", "Rzd.ChatBot\Rzd.ChatBot.csproj", "{11F8CC43-7C3B-4DF0-A20F-3B892164A87F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{68644EC7-FC1D-45F1-97DF-0BD37F1C9745}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "common", "common", "{2F00B4B1-AB81-4882-A467-AEDA5C7055E8}"
+	ProjectSection(SolutionItems) = preProject
+		Dockerfile = Dockerfile
+		.dockerignore = .dockerignore
+		docker-compose.yml = docker-compose.yml
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{EECBD798-6667-4C25-9188-4C83A5C1DF51}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ci", "ci", "{959B798C-320B-4F29-A88F-266924A47A40}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "gh", "gh", "{970D6BC6-FF5F-42A8-94AE-61D832C03FD0}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\docker-image.yml = .github\workflows\docker-image.yml
+		.github\workflows\dotnet.yml = .github\workflows\dotnet.yml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "jenkins", "jenkins", "{1DC0CBD9-788B-40C5-9F45-D83BAECF0407}"
+	ProjectSection(SolutionItems) = preProject
+		ci\Jenkinsfile = ci\Jenkinsfile
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{11F8CC43-7C3B-4DF0-A20F-3B892164A87F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11F8CC43-7C3B-4DF0-A20F-3B892164A87F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11F8CC43-7C3B-4DF0-A20F-3B892164A87F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11F8CC43-7C3B-4DF0-A20F-3B892164A87F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{11F8CC43-7C3B-4DF0-A20F-3B892164A87F} = {68644EC7-FC1D-45F1-97DF-0BD37F1C9745}
+		{970D6BC6-FF5F-42A8-94AE-61D832C03FD0} = {959B798C-320B-4F29-A88F-266924A47A40}
+		{1DC0CBD9-788B-40C5-9F45-D83BAECF0407} = {959B798C-320B-4F29-A88F-266924A47A40}
+	EndGlobalSection
+EndGlobal

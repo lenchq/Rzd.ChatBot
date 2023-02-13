@@ -1,0 +1,45 @@
+version: '3'
+
+services:
+  chatbot:
+    restart: 'no'
+    build:
+      context: .
+    environment:
+       - 'DOTNET_ENVIRONMENT=PRODUCTION'
+    ports:
+      - '8080:5000'
+    depends_on:
+      - redis
+#     - pg
+#    networks:
+#      - rzd
+    links:
+      - "redis:redisdb"
+    volumes:
+      - './vk_ts:/app/vk_ts'
+  redis:
+    image: bitnami/redis:latest
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_DISABLE_COMMANDS=
+    restart: 'no'
+#    networks:
+#      - rzd
+  
+#  pg:
+#    image: bitnami/postgresql:latest
+#    ports:
+#      - '5432:5432'
+#    networks:
+#      - rzdchatbot
+#    volumes:
+#      - 'postgresql_data:/bitnami/postgresql'
+#    environment:
+#      - 'ALLOW_EMPTY_PASSWORD=yes'
+#volumes:
+#  postgresql_data:
+#    driver: local    
+
+#networks:
+#  rzd: {}
