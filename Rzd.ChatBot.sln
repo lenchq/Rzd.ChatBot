@@ -6,11 +6,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{68644EC7-FC1
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "common", "common", "{2F00B4B1-AB81-4882-A467-AEDA5C7055E8}"
 	ProjectSection(SolutionItems) = preProject
+		Dockerfile = Dockerfile
+		.dockerignore = .dockerignore
+		docker-compose.yml = docker-compose.yml
 		README.md = README.md
 		.gitignore = .gitignore
-		docker\docker-compose.yml = docker\docker-compose.yml
-		docker\Dockerfile = docker\Dockerfile
-		docker\.dockerignore = docker\.dockerignore
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{EECBD798-6667-4C25-9188-4C83A5C1DF51}"
