@@ -16,6 +16,7 @@ public record UserForm
     private bool? _showContact;
     private bool _disabled = true;
     private bool _fulfilled = false;
+    private string? _username;
 
     public long Id { get; init; }
 
@@ -78,20 +79,26 @@ public record UserForm
         get => _fulfilled;
         set => SetField(value, out _fulfilled);
     }
+
+    public string? Username
+    {
+        get => _username;
+        set => SetField(value, out _username);
+    }
     
     
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
-    public DateTime LastActive { get; set; }
+    // public DateTime LastActive { get; set; }
     
     
     [NotMapped]
-    public bool Modified { get; private set; }
+    public bool Modified { get; set; }
 
-    public void UpdateActive()
-    {
-        LastActive = DateTime.UtcNow;
-    }
+    // public void UpdateActive()
+    // {
+    //     LastActive = DateTime.UtcNow;
+    // }
     
     private void SetField<T>(T value, out T field)
     {

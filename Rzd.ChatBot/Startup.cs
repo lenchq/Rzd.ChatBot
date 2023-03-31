@@ -6,6 +6,8 @@ using Rzd.ChatBot.Model;
 using Rzd.ChatBot.Repository;
 using Rzd.ChatBot.Repository.Interfaces;
 using Rzd.ChatBot.Types.Options;
+using Serilog;
+using Serilog.Sinks.Datadog.Logs;
 
 namespace Rzd.ChatBot;
 
@@ -27,6 +29,9 @@ internal sealed class Startup
             services.Configure<TelegramBotOptions>(
                 _configuration.GetSection("Bot:Telegram")
             );
+            services.Configure<AdminOptions>(
+                _configuration.GetSection("Bot:Admin")
+            );
             services.Configure<VkBotOptions>(
                 _configuration.GetSection("Bot:Vk")
             );
@@ -44,13 +49,24 @@ internal sealed class Startup
         
         ConfigureOptions();
         
-        services.AddSingleton<AppDbContext>();
+        Log.Logger = new LoggerConfiguration()
+            // .WriteTo.DatadogLogs(
+            //     _configuration.GetSection("Logging:Datadog:API_Key").Value,
+            //     service: "Rzd.ChatBot",
+            //     host: Environment.MachineName,
+            //     configuration: new DatadogConfiguration { Url = "https://http-intake.logs.datadoghq.com" }
+            // )
+            .WriteTo.Console()
+            .CreateLogger();
+        
+        services.AddDbContext<AppDbContext>(ServiceLifetime.Transient);
         
         services.AddTransient<AppLocalization>();
 
         services.AddSingleton<IMemoryCache<UserContext>, RedisCache<UserContext>>();
         services.AddTransient<IUserRepository, UserRepository>();
         services.AddTransient<IUserContextRepository, UserContextRepository>();
+        services.AddTransient<IReportRepository, ReportRepository>();
         
         services.AddSingleton<BotDialogues>(); 
         
@@ -60,6 +76,8 @@ internal sealed class Startup
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
-        //StaticServiceProvider.Instance = app.ApplicationServices;
+        using var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope();
+        var context = serviceScope.ServiceProvider.GetRequiredService<AppDbContext>();
+        context.Database.EnsureCreated();
     }
 }

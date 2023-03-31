@@ -9,6 +9,10 @@ using Rzd.ChatBot.Repository.Interfaces;
 using Rzd.ChatBot.Types.Enums;
 using Rzd.ChatBot.Types.Interfaces;
 using Rzd.ChatBot.Types.Options;
+using SmartFormat;
+using SmartFormat.Core.Parsing;
+using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 
 namespace Rzd.ChatBot.Types;
 
@@ -18,11 +22,10 @@ public abstract class BotWorker : BackgroundService
     protected readonly IUserContextRepository ContextRepository;
     protected readonly IServiceProvider ServiceProvider;
     protected readonly IUserRepository UserRepository;
+    private readonly string _qrSecret;
     
     protected readonly AppLocalization Localization;
     protected readonly ILogger<BotWorker> Logger;
-    
-
 
     protected BotWorker(
         string redisBotPrefix,
@@ -31,8 +34,8 @@ public abstract class BotWorker : BackgroundService
         AppLocalization localization,
         BotDialogues dialogues,
         IServiceProvider serviceProvider,
-        IUserRepository userRepository
-        )
+        IUserRepository userRepository,
+        IOptions<QrOptions> qrOptions)
     {
         Logger = logger;
         ContextRepository = contextRepository;
@@ -40,18 +43,75 @@ public abstract class BotWorker : BackgroundService
         Dialogues = dialogues;
         ServiceProvider = serviceProvider;
         UserRepository = userRepository;
-        
+
+        _qrSecret = qrOptions.Value.SecretKey;
         ContextRepository.Initialize(redisBotPrefix);
+        MatchHook.Instance.Like += OnFormLike;
+        MatchHook.Instance.Match += OnFormMatch;
     }
 
-    protected async Task OnFormMatch(UserContext matchTarget, UserForm matcher)
+    private async ValueTask OnFormMatch(MatchEventArgs args)
     {
-        if (matchTarget.State == State.Browsing)
+        var brow = new Browsing();
+        brow.DependencyInjection(ServiceProvider);
+        
+        var (from, to) = args;
+        var form = await UserRepository.GetFormAsync(from);
+        var text = Smart.Format(Localization["match:caption"],
+            new
+            {
+                form.Seat,
+                form.TrainNumber,
+                form.Name,
+                form.ShowCoupe,
+                form.ShowContact,
+                form.Username,
+                Contact = form.Id,
+            });
+
+        string Unescape()
         {
-            // TODO отложить 
+            
+            System.Span<char> buff1 = stackalloc char[text.Length];
+            EscapedLiteral.UnEscapeCharLiterals('\\', text, false, buff1);
+            return buff1.ToString();
         }
+
+        text = Unescape();
+        await SendTextMessage(to, text, OptionsProvider.Preserve, inlines: new InlineButtonsProvider()
+        {
+            Buttons = new[]
+            {
+                new []
+                {
+                    ($"report:{form.Id}", Localization["match:report"])
+                }
+            }
+        });
+    }
+
+    private async ValueTask OnFormLike(LikeEventArgs args)
+    {
+        var (fromId, toId) = args;
+        var toCtx = await ContextRepository.GetContextAsync(toId);
+        toCtx.LikeQueue.Enqueue(fromId);
+        if (toCtx.State == State.Browsing)
+        {
+            // await SendTextMessage(matcher.Id, Localization["browsing:like"]!, OptionsProvider.Preserve);
+        }
+        if (toCtx.LikeQueue.Count > 1 && (toCtx.LikeQueue.Count & 1) == 1)
+        {
+            
+            // несколько человек хотят познакомиться с тобой...
+        }
+        else
+        {
+            // тебя кто-то оценил....
+        }
+        await SendTextMessage(toCtx.Id, Localization["browsing:like"], OptionsProvider.Preserve);
         
-        
+        // TODO отослать уведомление о лайке
+        await UpdateUserContextIfModified(toCtx);
     }
 
     protected async Task HandleMessageAsync(Context ctx)
@@ -151,10 +211,11 @@ public abstract class BotWorker : BackgroundService
             if (nextDialogue.InputType == InputType.None)
             {
                 await SendTextMessage(chatId, nextDialogue.GetText(ctx),
-                    photos: nextDialogue is IPhotoMessage photoMessage ? photoMessage.GetPhotos(ctx) : null);
+                    photos: nextDialogue is IPhotoMessage photoMessage ? photoMessage.GetPhotos(ctx) : null,
+                    inlines: nextDialogue.GetInlineButtons());
                 
                 //TODO rename
-                var nextNextState = ((IMessageDialogue) nextDialogue).NextState;
+                var nextNextState = ((IMessageDialogue) nextDialogue).NextState(ctx);
                 userCtx.State = nextNextState;
                 await Finalize(nextNextState).ConfigureAwait(false);
                 return;
@@ -215,13 +276,30 @@ public abstract class BotWorker : BackgroundService
     private async Task HandleCommands(Context ctx, CancellationTokenSource cts)
     {
         if (ctx.Message.Text is null) return;
-        if (ctx.Message.Text == "/start")
+        if (ctx.Message.Text!.StartsWith("/start"))
         {
-            //TODO не удалять контекст, а просто перемещать его на Starting, потом из 
-            //TODO Starting перемещать в меню если анкета уже заполнена. 
+            string? parameterEncrypted = null;
+            if (ctx.Message.Text!.Split(' ').Length >= 2)
+                parameterEncrypted = ctx.Message.Text.Split(' ')[1];
+            string? parameterDecrypted = null;
 
+            try
+            {
+                parameterDecrypted = Crypto.AES.Decrypt(parameterEncrypted, _qrSecret);
+            }
+            catch { }
             if (ctx.UserForm.Fulfilled)
             {
+                if (ctx.UserForm.Disabled)
+                {
+                    ctx.UserForm.Disabled = false;
+                    // var disabledDiag = new FormDisabled();
+                    // disabledDiag.DependencyInjection(ServiceProvider);
+                    //
+                    // await SendTextMessage(ctx.UserContext.Id, disabledDiag.GetText(ctx), disabledDiag.GetOptions());
+                    // return;
+                }
+
                 var startingRedir = new StartRedirDialogue();
                 
                 ctx.UserContext.State = startingRedir.State;
@@ -232,75 +310,128 @@ public abstract class BotWorker : BackgroundService
                     startingRedir.GetOptions(), startingRedir.GetPhotos());
 
                 await ContextRepository.SetContextAsync(ctx.UserContext);
-                
-                cts.Cancel();
-                return;
             }
             
-            ContextRepository.DeleteContext(ctx.UserContext.Id);
-            
             var starting = new StartDialogue();
+            var newUserCtx = ctx.UserContext with
+            {
+                InputType = starting.InputType,
+                State = starting.State,
+                CurrentForm = null,
+                LikeQueue = new Queue<long>(),
+                PhotoCount = 0,
+                StartData = parameterDecrypted,
+            };
+
+            await ContextRepository.SetContextAsync(newUserCtx);
+
             starting.DependencyInjection(ServiceProvider);
             await SendTextMessage(ctx.UserContext.Id,
                 starting.GetText(ctx), starting.GetOptions(), starting.GetPhotos());
             cts.Cancel();
+            return;
         }
-        else if (ctx.Message.Text == "/dev_delete_me")
+        else if (ctx.Message.Text.StartsWith("/dev_ensure_admin"))
         {
-            ContextRepository.DeleteContext(ctx.UserContext.Id);
+            if (ctx.Message.Text.Split(' ').Length < 2)
+                return;
+            var payload = ctx.Message.Text.Split(' ')[1];
+            
+            var pass = ServiceProvider.GetService<IOptions<AdminOptions>>()!.Value;
+            if (string.Equals(payload, pass.Password))
+            {
+                ctx.UserContext.IsAdmin = true;
+
+                await UpdateUserContextIfModified(ctx.UserContext);
+                await SendTextMessage(ctx.UserContext.Id, Localization["_dev_ensure_admin:caption"],
+                    OptionsProvider.Preserve);
+                cts.Cancel();
+            }
+        }
+        else if (ctx.Message.Text.StartsWith("/dev_rm_admin"))
+        {
+            ctx.UserContext.IsAdmin = false;
+
+            await UpdateUserContextIfModified(ctx.UserContext);
+            await SendTextMessage(ctx.UserContext.Id, Localization["_dev_rm_admin:caption"],
+                OptionsProvider.Preserve);
+            cts.Cancel();
+        }
+        
+        if (!ctx.UserContext.IsAdmin) return;
+
+        #region dev commands
+
+        if (ctx.Message.Text!.StartsWith("/dev_delete_me"))
+        {
+            await ContextRepository.DeleteContextAsync(ctx.UserContext.Id);
             await UserRepository.DeleteForm(ctx.UserContext.Id);
 
             var deleted = new _DeletedMessage();
             deleted.DependencyInjection(ServiceProvider);
             await SendTextMessage(ctx.UserContext.Id,
                 deleted.GetText(ctx));
-            cts.Cancel();
         }
-        else if (ctx.Message.Text!.Contains("/dev_encode"))
+        else if (ctx.Message.Text!.StartsWith("/dev_encode"))
         {
             if (ctx.Message.Text.Split(' ').Length < 2)
                 return;
             var payload = ctx.Message.Text.Split(' ')[1];
-            
+
             var opts = ServiceProvider.GetService<IOptions<QrOptions>>()!.Value;
             var encrypted = Crypto.AES.Encrypt(payload, opts.SecretKey);
-            await SendTextMessage(ctx.UserContext.Id, encrypted);
+            await SendTextMessage(ctx.UserContext.Id, encrypted, OptionsProvider.Preserve);
         }
-        else if (ctx.Message.Text!.Contains("/dev_fake_gen"))
+        else if (ctx.Message.Text!.StartsWith("/dev_decode"))
         {
             if (ctx.Message.Text.Split(' ').Length < 2)
                 return;
-            var payload = int.Parse( ctx.Message.Text.Split(' ')[1] );
+            var payload = ctx.Message.Text.Split(' ')[1];
+
+            var opts = ServiceProvider.GetService<IOptions<QrOptions>>()!.Value;
+            try
+            {
+                var decrypted = Crypto.AES.Decrypt(payload, opts.SecretKey);
+                await SendTextMessage(ctx.UserContext.Id, decrypted);
+            }
+            catch (Exception ex)
+            {
+                await SendTextMessage(ctx.UserContext.Id, "error " + ex.Message);
+            }
+        }
+        else if (ctx.Message.Text!.StartsWith("/dev_fake_gen"))
+        {
+            if (ctx.Message.Text.Split(' ').Length < 2)
+                return;
+            var payload = int.Parse(ctx.Message.Text.Split(' ')[1]);
 
             var users = new List<UserForm>();
             var l = new List<UserLike>();
-            var trainNums = new[] {"123Б"/*, "442У", "144Ю", "333К"*/};
-            
-            
+            var trainNums = new[] {"123Б" /*, "442У", "144Ю", "333К"*/};
+
+
             var faker = new Faker<UserForm>("ru")
                 // .StrictMode(true)
-                .RuleFor(_ => _.Id, f => f.Random.Int())
-                .RuleFor(_ => _.Gender, f => (Gender) f.Random.Int(0,1))
-                .RuleFor(_ => _.Name, (f,form) => f.Name.FullName((Name.Gender?) form.Gender))
+                .RuleFor(_ => _.Id, f => f.Random.Long(max: -1))
+                .RuleFor(_ => _.Gender, f => (Gender) f.Random.Int(0, 1))
+                .RuleFor(_ => _.Name, (f, form) => f.Name.FullName((Name.Gender?) form.Gender))
                 .RuleFor(_ => _.About, f => f.Commerce.ProductDescription())
                 .RuleFor(_ => _.Age, f => f.Random.Int(13, 99))
                 .RuleFor(_ => _.TrainNumber, f => f.PickRandom(trainNums))
                 .RuleFor(_ => _.ShowContact, true)
                 .RuleFor(_ => _.ShowCoupe, true)
                 .RuleFor(_ => _.Seat, f => f.Random.Int(0, 100))
-                .RuleFor(_ => _.Photos, f => f.Make(f.Random.Int(1, 3), _ => f.Image.LoremFlickrUrl(1280, 720)).ToArray())
+                .RuleFor(_ => _.Photos,
+                    f => f.Make(f.Random.Int(1, 3), _ => f.Image.LoremFlickrUrl(1280, 720)).ToArray())
                 .RuleFor(_ => _.Disabled, false);
 
-            for (int i = 0; i < payload; i++)
+            for (var i = 0; i < payload; i++)
             {
-                var gender = Random.Shared.Next(0, 1);
-
-
                 var user = faker.Generate();
 
                 await UserRepository.CreateFormAsync(user);
 
-                var lc = Random.Shared.Next(0, await UserRepository.FormsCount()-1);
+                var lc = Random.Shared.Next(0, await UserRepository.FormsCount() - 1);
 
                 for (int j = 0; j < lc; j++)
                 {
@@ -313,10 +444,10 @@ public abstract class BotWorker : BackgroundService
                     };
 
                     await UserRepository.AddLikeAsync(like);
-                    
+
                     l.Add(like);
                 }
-                
+
                 users.Add(user);
             }
 
@@ -330,13 +461,15 @@ public abstract class BotWorker : BackgroundService
             if (t.Length < 5000)
                 await SendTextMessage(ctx.UserContext.Id, $"Generated {payload} fake forms\n\n{t}");
         }
-        else if (ctx.Message.Text!.Contains("/dev_getid"))
+        else if (ctx.Message.Text!.StartsWith("/dev_getid"))
         {
             if (ctx.Message.Photo is { } photo)
             {
                 await SendTextMessage(ctx.UserContext.Id, ctx.Message.Photo.FileId);
-            } 
+            }
         }
+        cts.Cancel();
+        #endregion
     }
 
     public Dictionary<string, string> GetCommandList()
@@ -363,8 +496,28 @@ public abstract class BotWorker : BackgroundService
         };
     }
 
+    protected async ValueTask HandleInlineQueryAsync(Context ctx, string queryData)
+    {
+        if (queryData.StartsWith("report"))
+        {
+            if (ctx.UserContext.State is State.Report or State.ReportOther)
+                return;
+            var arg = queryData[(queryData.IndexOf(":") + 1)..];
+            var userId = long.Parse(arg);
+            var reportDialogue = new ReportDialogue();
+            reportDialogue.DependencyInjection(ServiceProvider);
+
+            ctx.UserContext.State = reportDialogue.State;
+            ctx.UserContext.InputType = reportDialogue.InputType;
+            ctx.UserContext.CustomDataHolder = userId;
+
+            await SendTextMessage(ctx.UserContext.Id, reportDialogue.GetText(ctx), reportDialogue.GetOptions());
+            await UpdateUserContextIfModified(ctx.UserContext);
+        }
+    }
+
     protected abstract Task SendTextMessage(long chatId, string text, OptionsProvider? prov = null,
-        Photo[]? photos = null);
+        Photo[]? photos = null, InlineButtonsProvider? inlines = null);
 
     protected abstract Task<Stream> GetFile(string fileId);
 }

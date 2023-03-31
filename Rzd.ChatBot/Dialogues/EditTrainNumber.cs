@@ -8,7 +8,7 @@ namespace Rzd.ChatBot.Dialogues;
 
 public sealed class EditTrainNumberDialogue : InputDialogue
 {
-    private readonly Regex _trainNumberRegex = new Regex(@"\d\d\d[А-Я]", RegexOptions.IgnoreCase);
+    public static Regex TrainNumberRegex = new Regex(@"\d\d\d[А-Я]", RegexOptions.IgnoreCase);
     public override State State => State.AddTrainNumber;
 
     public EditTrainNumberDialogue()
@@ -19,7 +19,7 @@ public sealed class EditTrainNumberDialogue : InputDialogue
 
     public override ValueTask<State> ProceedInput(Context ctx)
     {
-        var trainNumGroup = _trainNumberRegex.Match(ctx.Message.Text).Groups[0];
+        var trainNumGroup = TrainNumberRegex.Match(ctx.Message.Text).Groups[0];
         var trainNum = trainNumGroup.Value.ToUpper();
         ctx.UserForm.TrainNumber = trainNum;
 
@@ -29,6 +29,6 @@ public sealed class EditTrainNumberDialogue : InputDialogue
 
     public override bool Validate(Message msg)
     {
-        return _trainNumberRegex.IsMatch(msg.Text);
+        return TrainNumberRegex.IsMatch(msg.Text);
     }
 }

@@ -40,10 +40,62 @@ public record UserContext
         set => SetField(value, out _currentForm);
     }
 
+    private Queue<long> _likeQueue = new Queue<long>();
+    private int? _cachedQueueCount;
+
+    public Queue<long> LikeQueue
+    {
+        get => _likeQueue;
+        set
+        {
+            if (value is not null)
+            {
+                _cachedQueueCount ??= value.Count;
+                SetField(value, out _likeQueue);
+            }
+        }
+    }
+
+    private string? _startData;
+
+    public string? StartData
+    {
+        get => _startData;
+        set => SetField(value, out _startData);
+    }
+
+    private dynamic? _customDataHolder;
+    public dynamic? CustomDataHolder
+    {
+        get => _customDataHolder;
+        set => SetField(value, out _customDataHolder);
+    }
+
+    private bool _isAdmin;
+    public bool IsAdmin
+    {
+        get => _isAdmin;
+        set => SetField(value, out _isAdmin);
+    }
+
+
+    private bool _modified;
+
     [JsonIgnore]
     [NotMapped]
-    public bool Modified { get; set; } = false;
-    
+    public bool Modified
+    {
+        get => EnsureModified() || _modified;
+        set => _modified = value;
+    }
+
+    private bool EnsureModified()
+    {
+        if (LikeQueue is null || _cachedQueueCount is null)
+            return false;
+        return LikeQueue.Count != _cachedQueueCount;
+    }
+
     private void SetField<T>(T value, out T field)
     {
         Modified = true;

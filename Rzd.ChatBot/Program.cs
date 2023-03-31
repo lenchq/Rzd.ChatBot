@@ -32,7 +32,6 @@ static class Program
                 // Hot reload only makes sense in development environment
                 configurationBuilder.AddYamlFile(localizationFilePath, false, isDev);
                 configurationBuilder.AddYamlFile(picsFilePath, false, isDev);
-                
                 configurationBuilder
                     .AddJsonFile(appsettingsFilePath,
                         false, isDev);
@@ -42,5 +41,6 @@ static class Program
                 {
                     webBuilder.UseStartup<Startup>();
                 }
-            );
+            )
+            .UseSerilog();
 }

@@ -8,6 +8,7 @@ public interface IUserContextRepository
     Task<UserContext> GetContextAsync(long id);
     UserContext GetContext(long id);
     void DeleteContext(long id);
+    Task DeleteContextAsync(long id);
     void Initialize(string? botPrefix);
     bool TryGetContext(long id, out UserContext result);
     void SetContext(UserContext ctx);

@@ -15,7 +15,7 @@ public class ScanQr : PhotoDialogue
 
     private QrOptions _qrOptions = null!;
     private readonly QRCodeDetector _qrDetector = new QRCodeDetector();
-    private readonly Regex _trainDataRegex = new(@"^(\d\d\d[А-Я])(\d\d?\d?)$");
+    public static Regex TrainDataRegex = new(@"^(\d\d\d[А-Я])(\d\d?\d?)$");
     
     private Mat _image = null!;
     private string _qrContent = string.Empty;
@@ -32,7 +32,7 @@ public class ScanQr : PhotoDialogue
     }
     public override ValueTask<State> ProceedInput(Context ctx, Photo photo)
     {
-        var dataMatch = _trainDataRegex.Match(_qrContent);
+        var dataMatch = TrainDataRegex.Match(_qrContent);
         if (dataMatch.Success)
         {
             ctx.UserForm.TrainNumber = dataMatch.Groups[1].Value;
@@ -66,7 +66,7 @@ public class ScanQr : PhotoDialogue
             return false;
         }
 
-        if (!_trainDataRegex.IsMatch(_qrContent))
+        if (!TrainDataRegex.IsMatch(_qrContent))
         {
             if (Logger.IsEnabled(LogLevel.Trace))
                 Logger.LogTrace("Unexpected qr data, {QrContent}", _qrContent);
@@ -78,7 +78,9 @@ public class ScanQr : PhotoDialogue
 
     private string DecryptContent(string qrContent)
     {
-        return Crypto.AES.Decrypt(qrContent, _qrOptions.SecretKey);
+        // get data cut after = ( https://t.me/rzdchatbot?start=code_here )
+        var data = qrContent[(qrContent.IndexOf('=') + 1)..];
+        return Crypto.AES.Decrypt(data, _qrOptions.SecretKey);
     }
 
     private void ProcessImage(PhotoData photoData)

@@ -22,6 +22,11 @@ public class UserContextRepository : IUserContextRepository
         _db = cache;
     }
 
+    public async Task DeleteContextAsync(long id)
+    {
+        await _db.DeleteAsync(BuildKey(id));
+    }
+
     public void Initialize(string? botPrefix)
     {
         if (_initialized) return;

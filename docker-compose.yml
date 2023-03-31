@@ -18,6 +18,8 @@ services:
         
   redis:
     image: bitnami/redis:latest
+    volumes:
+      - 'redis_data:/bitnami/redis/data'
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
       - REDIS_DISABLE_COMMANDS=

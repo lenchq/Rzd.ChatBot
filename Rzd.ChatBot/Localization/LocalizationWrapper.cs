@@ -157,4 +157,20 @@ public class LocalizationWrapper
         //return _localization[$"{_prefix}:options:{index}"];
     }
 
+    public IEnumerable<IEnumerable<(string Key, string Text)>>? GetInlines()
+    {
+        var itemsCount = _localization.GetChildren($"{_prefix}:inlines").Length;
+        if (itemsCount == 0) return null;
+        var buttons = Enumerable.Range(0, itemsCount)
+            .Select(index =>
+            {
+                var key = _localization.GetChildren($"match:inlines:{index}")[0];
+                return (key, _localization[$"match:inlines:{index}:{key}"]);
+            });
+
+        return new[]
+        {
+            buttons,
+        };
+    }
 }

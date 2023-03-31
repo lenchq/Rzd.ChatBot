@@ -16,4 +16,5 @@ public interface IUserRepository
     public Task<UserLike> AddLikeAsync(long fromId, long toId, bool like);
     public Task<UserForm?> PickForm(long userId);
     public Task<bool> CanPickForm(long userId);
+    public Task<bool> HasLike(long fromId, long toId);
 }

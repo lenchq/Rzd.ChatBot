@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using Rzd.ChatBot.Model;
@@ -10,9 +11,11 @@ public sealed class AppDbContext : DbContext
 {
     public DbSet<UserForm> Forms { get; set; } = null!;
     public DbSet<UserLike> Likes { get; set; } = null!;
+    public DbSet<Report> Reports { get; set; } = null!;
     
     private bool _isDev;
     private DbOptions _options;
+    private bool _created = false;
 
     public AppDbContext(IOptions<DbOptions> options, IWebHostEnvironment _env)
     {
@@ -61,9 +64,6 @@ public sealed class AppDbContext : DbContext
 
             entity.Property(form => form.CreatedAt)
                 .HasDefaultValueSql("NOW()");
-
-            // entity.Property(form => form.Disabled)
-            //     .HasDefaultValue(true);
         });
 
         modelBuilder.Entity<UserLike>(entity =>
@@ -71,18 +71,26 @@ public sealed class AppDbContext : DbContext
             entity.HasKey(like => like.Id);
             entity.Property(like => like.Id)
                 .ValueGeneratedOnAdd();
+        });
 
+        modelBuilder.Entity<Report>(entity =>
+        {
+            entity.HasKey(report => report.Id);
+            entity.Property(report => report.Id)
+                .ValueGeneratedOnAdd();
+            entity.Property(report => report.Created)
+                .HasDefaultValueSql("NOW()");
         });
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
     {
         var entities = ChangeTracker.Entries()
-            .Where(x => x.Entity is UserForm && x.State is EntityState.Added or EntityState.Modified);
+            .Where(x => x is {Entity: UserForm, State: EntityState.Added or EntityState.Modified});
 
         foreach (var entity in entities)
         {
-            var now = DateTime.UtcNow; // current datetime
+            var now = DateTime.UtcNow;
 
             // if (entity.State == EntityState.Added)
             // {

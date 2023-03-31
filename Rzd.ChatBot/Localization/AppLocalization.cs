@@ -15,14 +15,14 @@ public class AppLocalization
         _pics = configuration.GetSection(PicsPath);
     }
 
-    public string? this[string key] => GetItem(key);
+    public string this[string key] => GetItem(key);
 
 
     public string? GetPicPath(string key)
     {
         return _pics[key]; // ?? throw new NullReferenceException($"Picture reference with name {key} not found");
     }
-    public string? GetItem(string key)
+    public string GetItem(string key)
     {
         return _localization[key];
     }

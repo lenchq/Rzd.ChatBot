@@ -123,6 +123,12 @@ public class UserRepository : IUserRepository
             .AnyAsync();
     }
 
+    public async Task<bool> HasLike(long fromId, long toId)
+    {
+        return await _db.Likes
+            .AnyAsync(like => like.FromId == fromId && like.ToId == toId);
+    }
+
     public async Task<UserForm?> PickForm(long userId)
     {
         var userForm = await GetFormAsync(userId);

@@ -4,12 +4,12 @@ using Rzd.ChatBot.Types.Enums;
 
 namespace Rzd.ChatBot.Dialogues;
 
-public class EndOfFormsMessage : MessageDialogue
+public class ReportThanks : MessageDialogue
 {
-    public EndOfFormsMessage() : base("endOfForms")
+    public ReportThanks() : base("reportThanks")
     {
     }
 
-    public override State State => State.EndOfFormsRedir;
+    public override State State => State.ThanksForReportRedir;
     public override State NextState(Context ctx) => State.Menu;
 }

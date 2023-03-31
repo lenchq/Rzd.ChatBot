@@ -13,7 +13,7 @@ using VkNet.Model;
 using VkNet.Model.Keyboard;
 using File = System.IO.File;
 
-namespace Rzd.ChatBot;
+namespace Rzd.ChatBot; 
 
 public sealed class VkBotWorker : BotWorker
 {
@@ -23,7 +23,7 @@ public sealed class VkBotWorker : BotWorker
     private readonly VkApi _client;
     private readonly Random _random;
     // Src
-    private const string TsFilename = "../../../Resources/vk_ts";
+    private readonly string TsFilename;
 
     public VkBotWorker(
         ILogger<VkBotWorker> logger,
@@ -32,10 +32,17 @@ public sealed class VkBotWorker : BotWorker
         AppLocalization localization,
         BotDialogues dialogues,
         IServiceProvider provider,
-        IUserRepository userRepository
+        IUserRepository userRepository,
+        IOptions<QrOptions> qrOptions,
+        IWebHostEnvironment env
     )
-    : base(RedisPrefix, logger, contextRepository, localization, dialogues, provider, userRepository)
+    : base(RedisPrefix, logger, contextRepository, localization, dialogues, provider, userRepository, qrOptions)
     {
+        if (env.IsDevelopment())
+            TsFilename = "../../../Resources/vk_ts";
+        else
+            TsFilename = "vk_ts";
+        
         _client = new VkApi();
         _random = new Random();
         _client.Authorize(new()
@@ -98,7 +105,8 @@ public sealed class VkBotWorker : BotWorker
 
     
 
-    protected override async Task SendTextMessage(long chatId, string text, OptionsProvider? provider = null, Photo[]? photos = null)
+    protected override async Task SendTextMessage(long chatId, string text,
+        OptionsProvider? provider = null, Photo[]? photos = null, InlineButtonsProvider? inlines = null)
     {
         MessageKeyboard? keyboard = null; 
         if (provider?.Options is not null)

@@ -4,12 +4,13 @@ using Microsoft.Extensions.Options;
 using OpenCvSharp;
 using Rzd.ChatBot.Model;
 using Rzd.ChatBot.Types;
+using Rzd.ChatBot.Types.Attributes;
 using Rzd.ChatBot.Types.Enums;
 using Rzd.ChatBot.Types.Options;
 
 namespace Rzd.ChatBot.Dialogues;
 
-public class FormRescanQr : PhotoDialogue
+public class FormRescanQr : PhotoOrActionDialogue
 {
     public override bool SupportsPhotoData => true;
 
@@ -21,10 +22,16 @@ public class FormRescanQr : PhotoDialogue
     private string _qrContent = string.Empty;
     
     public override State State => State.FormRescanQr;
+    
+    public override IEnumerable<BotAction> Options { get; set; }
 
     public FormRescanQr() : base("scanQr")
     {
+        Options = new BotAction[] {GoBack};
     }
+
+    [OptionIndex(0)]
+    private ValueTask<State> GoBack(Context ctx) => new(State.MyFormEdited);
 
     protected override void Initialized()
     {
@@ -78,7 +85,9 @@ public class FormRescanQr : PhotoDialogue
 
     private string DecryptContent(string qrContent)
     {
-        return Crypto.AES.Decrypt(qrContent, _qrOptions.SecretKey);
+        // get data cut after = ( https://t.me/rzdchatbot?start=code_here )
+        var data = qrContent[(qrContent.IndexOf('=') + 1)..];
+        return Crypto.AES.Decrypt(data, _qrOptions.SecretKey);
     }
 
     private void ProcessImage(PhotoData photoData)

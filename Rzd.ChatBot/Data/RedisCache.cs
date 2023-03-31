@@ -9,21 +9,20 @@ namespace Rzd.ChatBot.Data;
 public class RedisCache<TData> : IMemoryCache<TData>
 {
     private readonly IDatabase _db;
-    private readonly RedisOptions _options;
     private readonly ILogger<RedisCache<TData>> _logger;
 
     public RedisCache(ILogger<RedisCache<TData>> logger,IOptions<RedisOptions> options)
     {
         ConnectionMultiplexer connection;
         _logger = logger;
-        _options = options.Value;
+        var opts = options.Value;
         try
         {
             connection = ConnectionMultiplexer.Connect(new ConfigurationOptions
             {
-                EndPoints = new EndPointCollection { _options.Host, _options.Port.ToString() },
-                //User = _options.User,
-                //Password = _options.Password,
+                EndPoints = new EndPointCollection { opts.Host, opts.Port.ToString() },
+                User = opts.User,
+                Password = opts.Password,
                 ReconnectRetryPolicy = new LinearRetry(60_000),
             });
         }
@@ -35,12 +34,7 @@ public class RedisCache<TData> : IMemoryCache<TData>
         _db = connection.GetDatabase();
     }
 
-    public TData this[string key]
-    {
-        get => Get(key);
-        set => Set(key, value);
-    }
-
+    [Obsolete]
     public TData Get(string key)
     {
         var json = _db.StringGet(key);
@@ -48,11 +42,6 @@ public class RedisCache<TData> : IMemoryCache<TData>
             throw new ArgumentException("No such key exists", nameof(key));
         var obj = JsonParse<TData>(json!);
         return obj;
-    }
-
-    public void Set(string key, TData value)
-    {
-        throw new NotImplementedException();
     }
 
     public async Task<TData> GetAsync(string key)
@@ -64,6 +53,7 @@ public class RedisCache<TData> : IMemoryCache<TData>
         return obj;
     }
 
+    [Obsolete]
     public void Set(string key, TData value, TimeSpan? expiry = null)
     {
         var stringified = JsonStringify(value);
@@ -83,10 +73,12 @@ public class RedisCache<TData> : IMemoryCache<TData>
         }
     }
 
+    [Obsolete]
     public void Delete(string key)
     {
         _db.KeyDelete(key);
     }
+    
     public async Task DeleteAsync(string key)
     {
         await _db.KeyDeleteAsync(key);

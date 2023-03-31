@@ -25,6 +25,6 @@ public sealed class EditNameDialogue : InputDialogue
 
     public override bool Validate(Message msg)
     {
-        return msg.Text?.Length < 32;
+        return msg.Text?.Length < 32 && !string.IsNullOrWhiteSpace(msg.Text);
     }
 }

@@ -10,7 +10,7 @@ public sealed class MyFormRedirect : PhotoMessage
 {
     public override State State => State.MyFormEdited;
 
-    public override State NextState { get; set; } = State.EditFormMenu;
+    public override State NextState(Context ctx) => State.EditFormMenu;
 
     public MyFormRedirect()
         : base("myForm")

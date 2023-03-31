@@ -1,4 +1,5 @@
-﻿using Rzd.ChatBot.Types;
+﻿using Rzd.ChatBot.Model;
+using Rzd.ChatBot.Types;
 using Rzd.ChatBot.Types.Enums;
 
 namespace Rzd.ChatBot.Dialogues;
@@ -10,5 +11,5 @@ public class _DeletedMessage : MessageDialogue
     }
 
     public override State State => State.Undefined;
-    public override State NextState { get; set; } = State.Starting;
+    public override State NextState(Context ctx) => State.Starting;
 }

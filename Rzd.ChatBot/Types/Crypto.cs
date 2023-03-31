@@ -1,6 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Serialization;
+using NeoSmart.Utils;
 
 namespace Crypto
 {
@@ -24,7 +25,9 @@ namespace Crypto
             int? keySize = null)
         {
             var key = CreateMd5Hash(passphrase);
-            var fullCipher = Convert.FromBase64String(input);
+            // var fullCipher = Convert.FromBase64String(input);
+            var fullCipher = UrlBase64.Decode(input);
+            
             var iv = new byte[16];
             var cipher = new byte[fullCipher.Length - iv.Length];
 
@@ -140,7 +143,8 @@ namespace Crypto
             Buffer.BlockCopy(iv, 0, result, 0, iv.Length);
             Buffer.BlockCopy(bytes, 0, result, iv.Length, bytes.Length);
 
-            return Convert.ToBase64String(result);
+            // return Convert.ToBase64String(result);
+            return UrlBase64.Encode(result);
         }
 
         #endregion

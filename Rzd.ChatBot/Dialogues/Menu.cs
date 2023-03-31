@@ -40,7 +40,7 @@ public class MenuDialogue : ActionDialogue
     [OptionIndex(2)]
     private ValueTask<State> DisableForm(Context ctx)
     {
-        // TODO disable and enable form
-        return new ValueTask<State>(State.Menu);
+        ctx.UserForm.Disabled = true;
+        return new ValueTask<State>(State.FormDisabled);
     }
 }

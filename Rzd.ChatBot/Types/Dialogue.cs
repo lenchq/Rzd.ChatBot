@@ -83,8 +83,12 @@ public abstract class Dialogue
         };
     }
 
+    public virtual InlineButtonsProvider? GetInlineButtons()
+    {
+        return null;
+    }
+
     protected virtual void Initialized()
     {
-        
     }
 }

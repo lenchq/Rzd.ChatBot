@@ -10,7 +10,7 @@ public sealed class MyFormMessage : PhotoMessage
 {
     public override State State => State.MyForm;
 
-    public override State NextState { get; set; } = State.EditFormOrContinue;
+    public override State NextState(Context _) => State.EditFormOrContinue;
 
     public MyFormMessage()
         : base("myForm")

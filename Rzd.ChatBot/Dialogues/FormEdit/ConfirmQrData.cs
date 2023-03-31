@@ -11,8 +11,7 @@ public class FormConfirmQrData : ActionDialogue
     {
         Options = new BotAction[] { Correct, Incorrect };
     }
-
-    //TODO REDIRECT
+    
     [OptionIndex(0)]
     private ValueTask<State> Correct(Context ctx) => new(State.MyFormEdited);
 

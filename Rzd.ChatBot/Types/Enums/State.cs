@@ -39,4 +39,9 @@ public enum State
     FormRescanQr,
     EndOfFormsRedir,
     StartingRedir,
+    MatchRedir,
+    Report,
+    ReportOther,
+    ThanksForReportRedir,
+    FormDisabled
 }

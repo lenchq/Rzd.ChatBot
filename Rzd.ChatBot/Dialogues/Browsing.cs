@@ -14,7 +14,7 @@ public class Browsing : ActionDialogue
     public Browsing() : base("browsing")
     {
         // TODO Like with message
-        // TODO Report
+        // TODO ReportDialogue
         Options = new BotAction[] {Like, Dislike, Leave};
     }
 
@@ -26,7 +26,12 @@ public class Browsing : ActionDialogue
     public override async ValueTask PostInitializeAsync(Context ctx)
     {
         UserForm form;
-        if (ctx.UserContext.CurrentForm is not null)
+        if (ctx.UserContext.LikeQueue.Any())
+        {
+            form = await _repo.GetFormAsync(ctx.UserContext.LikeQueue.Peek());
+            ctx.UserContext.CurrentForm = form.Id;
+        }
+        else if (ctx.UserContext.CurrentForm is not null)
         {
             form = await _repo.GetFormAsync(ctx.UserContext.CurrentForm.Value);
             ctx.UserContext.CurrentForm = null;
@@ -37,7 +42,7 @@ public class Browsing : ActionDialogue
             ctx.UserContext.CurrentForm = form.Id;
         }
 
-        currForm = form;
+        currForm = form!;
     }
 
     public override State State => State.Browsing;
@@ -45,8 +50,24 @@ public class Browsing : ActionDialogue
     [OptionIndex(0)]
     private async ValueTask<State> Like(Context ctx)
     {
-        //TODO Like
+        var bothLike = await _repo.HasLike(currForm.Id, ctx.UserContext.Id);
         await _repo.AddLikeAsync(ctx.UserForm.Id, currForm.Id, true);
+        if (bothLike)
+        {
+            // TODO show data about match if likes is on both sides
+            // if (ctx.UserContext.LikeQueue.TryPeek(out var peek) && peek == currForm.Id)
+            //     ctx.UserContext.LikeQueue.Dequeue();
+            await MatchHook.Instance.OnMatch(ctx.UserContext.Id, currForm.Id);
+            return State.MatchRedir;
+        }
+
+        // TODO!! for fake generated forms!! remove!
+        if (currForm.Id > 0)
+            await MatchHook.Instance.OnLike(ctx.UserContext.Id, currForm.Id);
+        
+        if (ctx.UserContext.LikeQueue.Any())
+            ctx.UserContext.LikeQueue.Dequeue();
+        
         if (!await _repo.CanPickForm(ctx.UserForm.Id)) {
             return State.EndOfFormsRedir;
         }
