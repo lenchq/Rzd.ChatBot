@@ -21,6 +21,7 @@ public sealed class AppDbContext : DbContext
     {
         _isDev = _env.IsDevelopment();
         _options = options.Value;
+        
         Database.EnsureCreated();
     }
 
