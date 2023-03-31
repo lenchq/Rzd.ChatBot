@@ -95,22 +95,35 @@ public abstract class BotWorker : BackgroundService
         var (fromId, toId) = args;
         var toCtx = await ContextRepository.GetContextAsync(toId);
         toCtx.LikeQueue.Enqueue(fromId);
-        if (toCtx.State == State.Browsing)
+        var message = Localization["browsing:like"];
+
+        try
         {
-            // await SendTextMessage(matcher.Id, Localization["browsing:like"]!, OptionsProvider.Preserve);
+            if (toCtx is {State: State.Browsing, LikeQueue.Count: > 1})
+            {
+                message = string.Format(Localization["browsing:like_browsing_several"], toCtx.LikeQueue.Count);
+            }
+            else if (toCtx.State == State.Browsing)
+            {
+                message = Localization["browsing:like_browsing"];
+            }
+            else if (toCtx.LikeQueue.Count == 1)
+            {
+                message = Localization["browsing:like"];
+            }
+            else if (toCtx.LikeQueue.Count > 1 && (toCtx.LikeQueue.Count & 1) == 1)
+            {
+                message = string.Format(Localization["browsing:like_several"], toCtx.LikeQueue.Count);
+            }
         }
-        if (toCtx.LikeQueue.Count > 1 && (toCtx.LikeQueue.Count & 1) == 1)
+        catch (Exception e)
         {
-            
-            // несколько человек хотят познакомиться с тобой...
+            Logger.LogError(e, "Error when formatting like string id({0})", toCtx.Id);
+            message = Localization["browsing:like"];
         }
-        else
-        {
-            // тебя кто-то оценил....
-        }
-        await SendTextMessage(toCtx.Id, Localization["browsing:like"], OptionsProvider.Preserve);
+
+        await SendTextMessage(toCtx.Id, message, OptionsProvider.Preserve);
         
-        // TODO отослать уведомление о лайке
         await UpdateUserContextIfModified(toCtx);
     }
 
